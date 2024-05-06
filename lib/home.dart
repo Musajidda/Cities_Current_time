@@ -19,32 +19,30 @@ class _HomepageState extends State<Homepage> {
         backgroundColor: const Color.fromRGBO(1, 16, 49, 0.122),
       ),
       body: Center(
-        child: Container(
-          child: Column(
-            children: [
-              const Icon(
-                Icons.access_time_rounded,
-                size: 200,
-                color: Colors.amber,
-              ),
-              const SizedBox(height: 220),
-              const Text(
-                'Tap to check your city current time!',
-                style: TextStyle(color: Colors.grey),
-              ),
-                const SizedBox(height: 20),
-              OutlinedButton(
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context){
-                    return const WorldTimeList();
-                    }));
-                  },
-                  child: const Text(
-                    'Check',
-                    style: TextStyle(color: Colors.amber, fontSize: 25),
-                  ))
-            ],
-          ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.access_time_rounded,
+              size: 200,
+              color: Colors.amber,
+            ),
+            const SizedBox(height: 220),
+            const Text(
+              'Tap to check your city current time!',
+              style: TextStyle(color: Colors.grey),
+            ),
+              const SizedBox(height: 20),
+            OutlinedButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context){
+                  return  const WorldTimeList();
+                  }));
+                },
+                child: const Text(
+                  'Check',
+                  style: TextStyle(color: Colors.amber, fontSize: 25),
+                ))
+          ],
         ),
       ),
       bottomNavigationBar: BottomAppBar(

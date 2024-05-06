@@ -1,7 +1,6 @@
-
-import 'package:basicapp/worldtime.dart';
 import 'package:flutter/material.dart';
-
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class WorldTimeList extends StatefulWidget {
   const WorldTimeList({super.key});
@@ -11,111 +10,68 @@ class WorldTimeList extends StatefulWidget {
 }
 
 class _WorldTimeListState extends State<WorldTimeList> {
-  final List<WorldTime> _worldTimes = [
-    WorldTime(location: 'New York', url: 'America/New_York'),
-    WorldTime(location: 'London', url: 'Europe/London'),
-    WorldTime(location: 'Paris', url: 'Europe/Paris'),
-    WorldTime(location: 'Tokyo', url: 'Asia/Tokyo'),
-    WorldTime(location: 'Sydney', url: 'Australia/Sydney'),
-    WorldTime(location: 'Lagos', url: 'Africa/Lagos'),
-    WorldTime(location: 'Dubai', url: 'Asia/Dubai'),
-    WorldTime(location: 'Qatar', url: 'Asia/Qatar'),
-    WorldTime(location: 'Riyadh', url: 'Asia/Riyadh'),
-    WorldTime(location: 'Singapore', url: 'Asia/Singapore'),
-    WorldTime(location: 'Hong_Kong', url: 'Asia/Hong_Kong'),
-    WorldTime(location: 'Gaza', url: 'Asia/Gaza'),
-    WorldTime(location: 'Cairo', url: 'Africa/Cairo'),
-    WorldTime(location: 'Khartoum', url: 'Africa/Khartoum'),
-    WorldTime(location: 'Baghdad', url: 'Asia/Baghdad'),
-    WorldTime(location: 'Kolkata', url: 'Asia/Kolkata'),
-    WorldTime(location: 'Moscow', url: 'Europe/Moscow'),
-    WorldTime(location: 'Rome', url: 'Europe/Rome'),
-    WorldTime(location: 'Honolulu', url: 'Pacific/Honolulu'),
-    WorldTime(location: 'Istanbul', url: 'Europe/Istanbul'),
-    WorldTime(location: 'Lisbon', url: 'Europe/Lisbon'),
-  ];
-
-   List<WorldTime> _filteredWorldTimes = [];
-
-  final TextEditingController _searchController = TextEditingController();
+  List<String> _timezones = [];
+  final List<Map<String, String>> _cityData = [];
 
   @override
   void initState() {
     super.initState();
-    _filteredWorldTimes = _worldTimes;
+    getTimezones();
   }
 
-  void _filterWorldTimes(String query) {
-    setState(() {
-      _filteredWorldTimes = _worldTimes
-          .where((worldTime) =>
-              worldTime.location.toLowerCase().contains(query.toLowerCase()))
-          .toList();
-    });
+  Future<void> getTimezones() async {
+    try {
+      final response = await http.get(Uri.parse('http://worldtimeapi.org/api/timezone'));
+      final List<dynamic> data = json.decode(response.body);
+      setState(() {
+        _timezones = data.cast<String>();
+      });
+      await fetchCityData();
+    } catch (e) {
+      print('Error: $e');
+    }
   }
 
+  Future<void> fetchCityData() async {
+    for (String timezone in _timezones) {
+      try {
+        final response = await http.get(Uri.parse('http://worldtimeapi.org/api/timezone/$timezone'));
+        final Map<String, dynamic> cityData = json.decode(response.body);
+        setState(() {
+          _cityData.add({
+            'location': timezone.split('/').last.replaceAll('_', ' '), // Extract city name from timezone
+            'time': cityData['datetime'].substring(11, 19),
+            'timezone': cityData['timezone'],
+          });
+        });
+      } catch (e) {
+        print('Error fetching data for $timezone: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-   appBar: AppBar(
+      appBar: AppBar(
         title: const Text('World Time'),
-        actions: [
-          PopupMenuButton(
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: const InputDecoration(
-                      hintText: 'Search...',
-                      border: InputBorder.none,
-                    ),
-                    onChanged: _filterWorldTimes,
-                  ),
-                ),
-              ),
-            ],
-            icon: const Icon(Icons.search),
-            offset: const Offset(0, 40),
-          ),
-        ],
       ),
-    body: ListView.builder(
-        itemCount: _filteredWorldTimes.length,
+      body: ListView.builder(
+        itemCount: _cityData.length,
         itemBuilder: (context, index) {
-          return FutureBuilder<Map<String, String>>(
-            future: _filteredWorldTimes[index].getTime(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return ListTile(
-                  title: Text(_filteredWorldTimes[index].location),
-                  subtitle: const CircularProgressIndicator(),
-                );
-              } else if (snapshot.hasError) {
-                return ListTile(
-                  title: Text(_filteredWorldTimes[index].location),
-                  subtitle: Text('Error: ${snapshot.error}'),
-                );
-              } else {
-                return ListTile(
-                  title: Text(_filteredWorldTimes[index].location),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Time: ${snapshot.data!['time']}'),
-                      Text('Timezone: ${snapshot.data!['timezone']}'),
-                    ],
-                  ),
-                );
-              }
-            },
+          final city = _cityData[index];
+          return ListTile(
+            title: Text(city['location'] ?? ''),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Time: ${city['time'] ?? ''}'),
+                Text('Timezone: ${city['timezone'] ?? ''}'),
+              ],
+            ),
           );
         },
       ),
     );
   }
 }
-
-
